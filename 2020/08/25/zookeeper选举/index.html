@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT" />
+  <meta name="keywords" content="zookeeper," />
 
 
 
@@ -79,12 +79,17 @@
 
 
 
-<meta property="og:type" content="website">
-<meta property="og:title" content="Tom&#39;s Blog">
-<meta property="og:url" content="http://1525.xyz/index.html">
+<meta name="description" content="zookeeper选举zookeeper选举的概述zookeeper的leader选举是分布式数据一致性的关键所在，在zookeeper集群中，有以下两种情况会出现leader的选举。  zookeeper集群启动时 zookeeper集群运行时，无法和leader保持连接（网络故障，leader宕机）  下面就针对这两种情况分别进行讨论： 1.zookeeper集群启动时选举​        进">
+<meta property="og:type" content="article">
+<meta property="og:title" content="zookeeper选举">
+<meta property="og:url" content="http://1525.xyz/2020/08/25/zookeeper%E9%80%89%E4%B8%BE/index.html">
 <meta property="og:site_name" content="Tom&#39;s Blog">
+<meta property="og:description" content="zookeeper选举zookeeper选举的概述zookeeper的leader选举是分布式数据一致性的关键所在，在zookeeper集群中，有以下两种情况会出现leader的选举。  zookeeper集群启动时 zookeeper集群运行时，无法和leader保持连接（网络故障，leader宕机）  下面就针对这两种情况分别进行讨论： 1.zookeeper集群启动时选举​        进">
 <meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-08-24T17:02:01.000Z">
+<meta property="article:modified_time" content="2020-08-24T17:02:58.604Z">
 <meta property="article:author" content="tom">
+<meta property="article:tag" content="zookeeper">
 <meta name="twitter:card" content="summary">
 
 
@@ -115,13 +120,13 @@
 
 
 
-  <link rel="canonical" href="http://1525.xyz/"/>
+  <link rel="canonical" href="http://1525.xyz/2020/08/25/zookeeper选举/"/>
 
 
 
 
 
-  <title>Tom's Blog</title>
+  <title>zookeeper选举 | Tom's Blog</title>
   
 
 
@@ -140,8 +145,7 @@
     
   
 
-  <div class="container sidebar-position-left 
-  page-home">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -214,9 +218,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
 
   
 
@@ -246,9 +250,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/08/25/zookeeper%E9%80%89%E4%B8%BE/" itemprop="url">zookeeper选举</a></h1>
+          <h1 class="post-title" itemprop="name headline">zookeeper选举</h1>
         
 
         <div class="post-meta">
@@ -298,26 +300,40 @@
       
 
       
-        
-          
-          zookeeper选举zookeeper选举的概述zookeeper的leader选举是分布式数据一致性的关键所在，在zookeeper集群中，有以下两种情况会出现leader的选举。
+        <h1 id="zookeeper选举"><a href="#zookeeper选举" class="headerlink" title="zookeeper选举"></a>zookeeper选举</h1><h3 id="zookeeper选举的概述"><a href="#zookeeper选举的概述" class="headerlink" title="zookeeper选举的概述"></a>zookeeper选举的概述</h3><p>zookeeper的leader选举是分布式数据一致性的关键所在，在zookeeper集群中，有以下两种情况会出现leader的选举。</p>
+<ol>
+<li>zookeeper集群启动时</li>
+<li>zookeeper集群运行时，无法和leader保持连接（网络故障，leader宕机）</li>
+</ol>
+<p>下面就针对这两种情况分别进行讨论：</p>
+<h3 id="1-zookeeper集群启动时选举"><a href="#1-zookeeper集群启动时选举" class="headerlink" title="1.zookeeper集群启动时选举"></a>1.zookeeper集群启动时选举</h3><p>​        进行leader选举至少需要集群中有两个服务，这里用三个服务进行讨论，在zookeeper集群启动时，server1启动时，由于只有一个服务，所谓无法完成leader选举，当第二台服务器server2启动时，此时两个机器可以相互通信，则进去leader选举的过程（looking状态）。选举过程如下</p>
+<ol>
+<li><p><strong>每个server发出一个投票</strong>。由于是初始状态，server1和server2都会将自己看做leader服务进行投票，每次投票会包含两个信息，myid和zxid，使用（myid,zxid）来表示，此时server1的投票为（1,0），server2的投票为（2,0）,然后各自将投票发给集群中的其他机器。</p>
+</li>
+<li><p><strong>接受来自各个服务器的投票。</strong>集群中的服务收到投票后，首先会判断投票的有效性，检查是否是本轮投票，是否来自looking状态的服务器。</p>
+</li>
+<li><p><strong>处理投票。</strong>这对每个投票，服务器都需要将别人的投票和自己的投票进行pk,pk规则如下。</p>
+<ol>
+<li>优先检查zxid，zxid较大的服务器选为leader。</li>
+<li>如果zxid相同，那么久比较myid,myid较大的为leader服务器。</li>
+</ol>
+<p>对于server1来说，它的投票信息是（1,0）收到server2的投票信息为（2,0）则通过上述规则进行判断，先判断zxid，发现zxid都一样，则比较myid，发现server2的myid较大，于是更新自己的投票信息为（2,0）并发出到集群中。而对于server2来说，无需更新自己的投票信息，只需要向集群中再发一次上一次的投票信息即可。</p>
+</li>
+<li><p><strong>统计投票。</strong>每次投票，服务器都会统计投票信息，判断是否已经有过半的机器接受到了相同的投票信息，对于server1,server2而言，server2已经拿到两个选票，则认为已经选出leader了。</p>
+</li>
+<li><p><strong>改变服务器状态。</strong>一旦确定出了leader,每个服务器就会改变自己的状态，如果是follower,则状态改成following,如果是leader,则改为leading。</p>
+</li>
+</ol>
+<h3 id="2-zookeeper集群运行时间选举"><a href="#2-zookeeper集群运行时间选举" class="headerlink" title="2.zookeeper集群运行时间选举"></a>2.zookeeper集群运行时间选举</h3><p>​        在Zookeeper运行期间，Leader与非Leader服务器各司其职，即便当有非Leader服务器宕机或新加入，此时也不会影响Leader，但是一旦Leader服务器挂了，那么整个集群将暂停对外服务，进入新一轮Leader选举，其过程和启动时期的Leader选举过程基本一致。假设正在运行的有Server1、Server2、Server3三台服务器，当前Leader是Server2，若某一时刻Leader挂了，此时便开始Leader选举。选举过程如下</p>
+<ol>
+<li><strong>变更状态</strong>。Leader挂后，余下的非Observer服务器都会讲自己的服务器状态变更为LOOKING，然后开始进入Leader选举过程。</li>
+<li><strong>每个Server会发出一个投票</strong>。在运行期间，每个服务器上的ZXID可能不同，此时假定Server1的ZXID为123，Server3的ZXID为122；在第一轮投票中，Server1和Server3都会投自己，产生投票(1, 123)，(3, 122)，然后各自将投票发送给集群中所有机器。</li>
+<li><strong>接收来自各个服务器的投票</strong>。与启动时过程相同。</li>
+<li><strong>处理投票</strong>。与启动时过程相同，此时，Server1将会成为Leader。</li>
+<li><strong>统计投票</strong>。与启动时过程相同。</li>
+<li><strong>改变服务器的状态</strong>。与启动时过程相同。</li>
+</ol>
 
-zookeeper集群启动时
-zookeeper集群运行时，无法和leader保持连接（网络故障，leader宕机）
-
-下面就针对这两种情况分别进行讨论：
-1.zookeeper集群启动时选举​        进行leader选举至少需要集群中有两个服务，这里用三个服务进行讨论，在zookeeper集群启动时，server1启动时，由于只有一个服务，所谓无法完成leader选举，当第二台服务器server2启动时，此时两个机器可以相互通信，则进去leader选举的过程（looking状态）。选举过程如下
-
-
-          ...
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2020/08/25/zookeeper%E9%80%89%E4%B8%BE/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
       
     </div>
     
@@ -332,283 +348,36 @@ zookeeper集群运行时，无法和leader保持连接（网络故障，leader�
 
     <footer class="post-footer">
       
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/08/20/mysql%E7%AC%94%E8%AE%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="tom">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Tom's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/08/20/mysql%E7%AC%94%E8%AE%B0/" itemprop="url">mysql笔记</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-08-20T23:06:24+08:00">
-                2020-08-20
-              </time>
-            
-
-            
-
-            
-          </span>
-
+        <div class="post-tags">
           
-
+            <a href="/tags/zookeeper/" rel="tag"># zookeeper</a>
           
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
         </div>
-      </header>
-    
+      
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
+      
       
       
 
       
-        
-          
-          面试问题：在一个表里面有可能有数据，有可能没有数据，请查询工资第二高的数据：
-select IFNULL((select Distinct Salary from Employee order by Salary DESC limit 1,1),null) as SecondHighestSalary
-在用limit时，如果没有结果，或报错，所以需要用ifnull判断一下
-下载安装
-下载tar版本的，解压后放入到/usr/local/mysql中
-执行/usr/local/mysql/bin/mysqld –initialize –user=mysql初始化mysql，生成临时密码
-登录mysql,mysql -u root -p 输入上面的密码
-修改密码set password=passw
-          ...
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2020/08/20/mysql%E7%AC%94%E8%AE%B0/#more" rel="contents">
-              Read more &raquo;
-            </a>
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/08/20/mysql%E7%AC%94%E8%AE%B0/" rel="next" title="mysql笔记">
+                <i class="fa fa-chevron-left"></i> mysql笔记
+              </a>
+            
           </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
 
-    
+          <span class="post-nav-divider"></span>
 
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/08/20/java%E9%9D%A2%E8%AF%95%E9%A2%98/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="tom">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Tom's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2020/08/20/java%E9%9D%A2%E8%AF%95%E9%A2%98/" itemprop="url">java面试题</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
+          <div class="post-nav-prev post-nav-item">
             
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-08-20T23:01:30+08:00">
-                2020-08-20
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
+          </div>
         </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
       
 
       
-        
-          
-          java基础基础数据类型long double 8字节
-int flot 4字节
-short char 2字节
-Byte 1字节
-Boolean 1位
-String,Stringbuffer,Stringbuilder区别：
-String是不可变的，Stringbuffer和Stringbuilder是可变的
-Stringbuffer是线程安全的，Stringbuilder是线程非安全的
-
-相同处：三个类都是final类，不能被继承
-讲讲类的实例化顺序，比如父类静态数据，构造函数，字段，子类静态数据，构造函数，字段，当new的时候，他们的执行顺序。这个通过类加载机制能说清楚，在类加载的时候会先为静态变量赋值，这个时候如果静态变量的值来自于一个静态方法，则会调用这个方法，同样，在类加载中，父类
-          ...
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2020/08/20/java%E9%9D%A2%E8%AF%95%E9%A2%98/#more" rel="contents">
-              Read more &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
       
     </footer>
   </div>
@@ -618,10 +387,11 @@ Stringbuffer是线程安全的，Stringbuilder是线程非安全的
   </article>
 
 
-    
-  </section>
 
-  
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -629,6 +399,10 @@ Stringbuffer是线程安全的，Stringbuilder是线程非安全的
 
 
           
+
+  
+
+
 
         </div>
         
@@ -649,8 +423,17 @@ Stringbuffer是线程安全的，Stringbuilder是线程非安全的
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -701,6 +484,22 @@ Stringbuffer是线程安全的，Stringbuilder是线程非安全的
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#zookeeper选举"><span class="nav-number">1.</span> <span class="nav-text">zookeeper选举</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#zookeeper选举的概述"><span class="nav-number">1.0.1.</span> <span class="nav-text">zookeeper选举的概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-zookeeper集群启动时选举"><span class="nav-number">1.0.2.</span> <span class="nav-text">1.zookeeper集群启动时选举</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-zookeeper集群运行时间选举"><span class="nav-number">1.0.3.</span> <span class="nav-text">2.zookeeper集群运行时间选举</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -834,6 +633,10 @@ Stringbuffer是线程安全的，Stringbuilder是线程非安全的
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 

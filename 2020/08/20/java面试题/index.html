@@ -83,12 +83,12 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="java面试题">
 <meta property="og:url" content="http://1525.xyz/2020/08/20/java%E9%9D%A2%E8%AF%95%E9%A2%98/index.html">
-<meta property="og:site_name" content="Tom哥">
+<meta property="og:site_name" content="Tom&#39;s Blog">
 <meta property="og:description" content="java基础基础数据类型long double 8字节 int flot 4字节 short char 2字节 Byte 1字节 Boolean 1位 String,Stringbuffer,Stringbuilder区别： String是不可变的，Stringbuffer和Stringbuilder是可变的 Stringbuffer是线程安全的，Stringbuilder是线程非安全的  相同处">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2020-08-20T15:01:30.000Z">
-<meta property="article:modified_time" content="2020-08-20T15:05:38.289Z">
-<meta property="article:author" content="小汤">
+<meta property="article:modified_time" content="2020-08-24T13:54:40.330Z">
+<meta property="article:author" content="tom">
 <meta name="twitter:card" content="summary">
 
 
@@ -125,7 +125,7 @@
 
 
 
-  <title>java面试题 | Tom哥</title>
+  <title>java面试题 | Tom's Blog</title>
   
 
 
@@ -155,7 +155,7 @@
     <div class="custom-logo-site-title">
       <a href="/"  class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">Tom哥</span>
+        <span class="site-title">Tom's Blog</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -235,13 +235,13 @@
     <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/08/20/java%E9%9D%A2%E8%AF%95%E9%A2%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="小汤">
+      <meta itemprop="name" content="tom">
       <meta itemprop="description" content="">
       <meta itemprop="image" content="/images/avatar.gif">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Tom哥">
+      <meta itemprop="name" content="Tom's Blog">
     </span>
 
     
@@ -399,7 +399,7 @@
 </tbody></table>
 <p>java中锁升级是指的synchronized锁从无锁，偏向锁，轻量级锁，重量级锁升级的过程，java中锁只能升级，而不能降级。</p>
 <ol>
-<li><p>重量级锁是指的依赖系统的同步函数的锁，这些同步函数都会涉及到用户态和内核状态的切换，进程的上下文切换，成本较高。这就会导致在没有偏向锁和轻量级锁的情况下单一线程或者两个线程近乎于交替执行synchronized代码块或者方法时，效率较低（jdk1.6之前存在的问题）。重量级锁的实现依赖monitor对象，在monitor对象中维护了Contentionlist（争抢list），EntryList(进入等待执行的list)，waitSet(等待队列)。当一个线程尝试获取一把锁时，如果该锁知被占有的状态，该线程会被封装成一个ObjectWaiter放入到ContentionList中并暂停当前线程，在持有锁的线程释放锁之前，在ContentionList中的所有元素会被放入到EntyList中去，并唤醒EntryList中队首的线程。当一个线程调用Object.wait()方法时，线程对于的ObjectWaiter会被放入到WaitSet中，然后释放锁，在wait的线程被唤醒时，对应的ObjectWaiter会被放入到EntrySet中。</p>
+<li><p>重量级锁是指的依赖系统的同步函数的锁，这些同步函数都会涉及到用户态和内核状态的切换，线程的上下文切换，成本较高。这就会导致在没有偏向锁和轻量级锁的情况下单一线程或者两个线程近乎于交替执行synchronized代码块或者方法时，效率较低（jdk1.6之前存在的问题）。重量级锁的实现依赖monitor对象，在monitor对象中维护了Contentionlist（争抢list），EntryList(进入等待执行的list)，waitSet(等待队列)。当一个线程尝试获取一把锁时，如果该锁知被占有的状态，该线程会被封装成一个ObjectWaiter放入到ContentionList中并暂停当前线程，在持有锁的线程释放锁之前，在ContentionList中的所有元素会被放入到EntyList中去，并唤醒EntryList中队首的线程。当一个线程调用Object.wait()方法时，线程对于的ObjectWaiter会被放入到WaitSet中，然后释放锁，在wait的线程被唤醒时，对应的ObjectWaiter会被放入到EntrySet中。</p>
 </li>
 <li><p>轻量级锁时为了避免在线程<strong>交替执行</strong>同步代码时使用重量级所带来的性能消耗，实现原理是在一个线程执行同步代码块时，在线程的栈帧中创建一个内存区域（Displaced Mark Word）用于存放锁对象头中的Mark Word,将锁对象头中的Mark Word复杂到栈帧中后，尝试使用cas去将自己的Displaced Mark Word的地址存到锁对象的Mark Word中，如果成功，则获取锁成功，如果失败，自旋，多次自旋不成功膨胀为重量级锁</p>
 </li>
@@ -704,7 +704,7 @@
 <p>​    增量同步同步的是指令流（类似于aof），会将指令记在内存的buffer中，然后一步的将buffer中的指令同步到从节点，从节点一边执行同步过来的指令，一边向主节点返回自己同步到哪里了（偏移量）</p>
 <p>​    内存的buffer是有限的，如果buffer填充满了，就会从头开始覆盖前面的内容，这回导致数据的不一致</p>
 <p>快照同步：</p>
-<p>​    在2.8.18（老掉牙的版本）前快照同步相当于执行了bgsave命令，在生成了rdb文件之后再传送给从节点，从节点在进行恢复，从节点进行恢复前会清空内存中数据，重新恢复一次，在快照同步的过程中，主节点的复杂buffer还是在不停的向前走，如果由于buffer太小，或者同步时间过长，会导致buffer中的指令被覆盖，这样会使得快照同步完成后无法进行增量同步，然后会在一次发起快照同步，如此会导致死循环。<strong>设置合适的buffer很重要</strong>。在2.8.18后支持了无盘复制，不需要写入硬盘，之间通过套接字传送给从节点。</p>
+<p>​    在2.8.18（老掉牙的版本）前快照同步相当于执行了bgsave命令，在生成了rdb文件之后再传送给从节点，从节点在进行恢复，从节点进行恢复前会清空内存中数据，重新恢复一次，在快照同步的过程中，主节点的增量同步的buffer还是在不停的向前走，如果由于buffer太小，或者同步时间过长，会导致buffer中的指令被覆盖，这样会使得快照同步完成后无法进行增量同步，然后会在一次发起快照同步，如此会导致死循环。<strong>设置合适的buffer很重要</strong>。在2.8.18后支持了无盘复制，不需要写入硬盘，之间通过套接字传送给从节点。</p>
 <h6 id="Wait指令"><a href="#Wait指令" class="headerlink" title="Wait指令"></a>Wait指令</h6><p>​    Redis的复制是异步的，但是可以通过wait让异步变为同步的，（3.0）以后才有的。</p>
 <p>​    wait参数有两个，第一个是从库的数量，第二个是时间，毫秒为单位，时间参数为0是表示等到所有的从库复制完成，Redis在可以用。</p>
 <h5 id="哨兵模式"><a href="#哨兵模式" class="headerlink" title="哨兵模式"></a>哨兵模式</h5><p>解决的问题：监控主节点状态，如果主节点挂了，立即冲从节点中找一个健康的作为新的主节点</p>
@@ -871,7 +871,7 @@
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
-              <p class="site-author-name" itemprop="name">小汤</p>
+              <p class="site-author-name" itemprop="name">tom</p>
               <p class="site-description motion-element" itemprop="description"></p>
           </div>
 
@@ -882,7 +882,7 @@
               
                 <a href="/archives/%7C%7C%20archive">
               
-                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-count">3</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -890,6 +890,15 @@
 
             
 
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
             
 
           </nav>
@@ -943,7 +952,7 @@
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
-  <span class="author" itemprop="copyrightHolder">小汤</span>
+  <span class="author" itemprop="copyrightHolder">tom</span>
 
   
 </div>
