@@ -229,6 +229,143 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="tom">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tom's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/" itemprop="url">Unix中5种IO模型</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-10-07T23:00:38+08:00">
+                2020-10-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          Unix中5种IO模型最近在学习netty，在这个过程中总是会有一些术语在脑海里面回荡，阻塞式IO/非阻塞式IO/同步/异步。带着这些疑问对Unix中的IO模型做了一些了解。
+IO是主存和外部设备（硬盘，终端和网络等）拷贝数据的过程。IO是操作系统底层的功能实现，底层通过IO指令进行完成。下面我们讨论的IO指的都是网络IO。
+在Unix中，IO模型有以下5种
+
+阻塞式IO（blocking IO)
+非阻塞式IO(no-blocking IO)
+IO多路复用（IO multiplexing）
+信号驱动式IO
+异步IO
+
+对于这五种IO模型，Java并不是一开始就都全部支持，而是有一个逐步演进的过程：
+在JDK1.4之前，Java的IO模型只支持阻塞式IO(Blocking IO)，简称为BIO
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/08/25/zookeeper%E9%80%89%E4%B8%BE/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -665,7 +802,7 @@ Stringbuffer是线程安全的，Stringbuilder是线程非安全的
               
                 <a href="/archives/%7C%7C%20archive">
               
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>

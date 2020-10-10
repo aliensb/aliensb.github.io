@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Unix中5种IO模型最近在学习netty，在这个过程中总是会有一些术语在脑海里面回荡，阻塞式IO&#x2F;非阻塞式IO&#x2F;同步&#x2F;异步。带着这些疑问对Unix中的IO模型做了一些了解。 IO是主存和外部设备（硬盘，终端和网络等）拷贝数据的过程。IO是操作系统底层的功能实现，底层通过IO指令进行完成。下面我们讨论的IO指的都是网络IO。 在Unix中，IO模型有以下5种  阻塞式IO（blocking IO)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Unix中5种IO模型">
+<meta property="og:url" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/index.html">
+<meta property="og:site_name" content="Tom&#39;s Blog">
+<meta property="og:description" content="Unix中5种IO模型最近在学习netty，在这个过程中总是会有一些术语在脑海里面回荡，阻塞式IO&#x2F;非阻塞式IO&#x2F;同步&#x2F;异步。带着这些疑问对Unix中的IO模型做了一些了解。 IO是主存和外部设备（硬盘，终端和网络等）拷贝数据的过程。IO是操作系统底层的功能实现，底层通过IO指令进行完成。下面我们讨论的IO指的都是网络IO。 在Unix中，IO模型有以下5种  阻塞式IO（blocking IO)">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/1483366231306044257.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/bio.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/nio.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/iomutl.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/sig.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/aio.png">
+<meta property="article:published_time" content="2020-10-07T15:00:38.000Z">
+<meta property="article:modified_time" content="2020-10-10T03:57:32.773Z">
+<meta property="article:author" content="tom">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/1483366231306044257.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://1525.xyz/2020/10/07/Unix中5种IO模型/"/>
+
+
+
+
+
+  <title>Unix中5种IO模型 | Tom's Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Tom's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="tom">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tom's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Unix中5种IO模型</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-10-07T23:00:38+08:00">
+                2020-10-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Unix中5种IO模型"><a href="#Unix中5种IO模型" class="headerlink" title="Unix中5种IO模型"></a>Unix中5种IO模型</h1><p>最近在学习netty，在这个过程中总是会有一些术语在脑海里面回荡，阻塞式IO/非阻塞式IO/同步/异步。带着这些疑问对Unix中的IO模型做了一些了解。</p>
+<p>IO是主存和外部设备（硬盘，终端和网络等）拷贝数据的过程。IO是操作系统底层的功能实现，底层通过IO指令进行完成。下面我们讨论的IO指的都是网络IO。</p>
+<p>在Unix中，IO模型有以下5种</p>
+<ol>
+<li>阻塞式IO（blocking IO)</li>
+<li>非阻塞式IO(no-blocking IO)</li>
+<li>IO多路复用（IO multiplexing）</li>
+<li>信号驱动式IO</li>
+<li>异步IO</li>
+</ol>
+<p>对于这五种IO模型，Java并不是一开始就都全部支持，而是有一个逐步演进的过程：</p>
+<p><strong>在JDK1.4之前</strong>，Java的IO模型只支持阻塞式IO(Blocking IO)，简称为BIO </p>
+<p><strong>在JDK1.4时</strong>，支持了I/O多路复用模型，相对于之前的IO模型，这是一个新的模型，所以称之为NIO（New IO），有新就有旧，所以有时也把BIO称之为OIO(old IO)，其实都是一个意思。到现在为止，JDK1.8都已经出来了，JDK1.4时引入的nio包，也没有什么新鲜的了，所以更多的人愿意把NIO理解为None-Blocking IO，即非阻塞IO。</p>
+<p><strong>在JDK1.7时</strong>，对NIO包进行了升级，支持了异步I/O(Asynchronous IO)，简称为AIO，因为是对nio包的升级，所有有时又称之为NIO2.0。</p>
+<p>在了解了java的IO模型演进和Unix5种IO模型的关系之后，我们先来了解下一个IO操作的过程：</p>
+<p>这里以一个网络IO来举例，对一个一个网络IO来说（read），他会涉及到两个对象，一个是发起IO操作的这个进程，一个是系统内核，发起操作的进程，系统内核是真正工作的对象，而用户程序则需要直接或者间接的通过系统内核来完成工作。当一个read操作发生时，会有以下两个阶段：</p>
+<ol>
+<li>等待数据准备就绪</li>
+<li>将数据从内核拷贝到进程中</li>
+</ol>
+<p>如下图所示：</p>
+<p><img src="1483366231306044257.png" alt=""></p>
+<p>图中明显忽略了很多细节，仅显示了涉及到的基本步骤 ，注意图中用户空间和内核空间的概念。</p>
+<p><strong>用户空间</strong>是常规进程所在区域。 JVM 就是常规进程，驻守于用户空间。用户空间是非特权区域：比如，在该区域执行的代码就不能直接访问硬件设备。</p>
+<p><strong>内核空间</strong>是操作系统所在区域。内核代码有特别的权力：它能与设备控制器通讯，控制着用户区域进程的运行状态，等等。最重要的是，所有 I/O 都直接（如这里所述）或间接通过内核空间。</p>
+<p>当进程请求 I/O 操作的时候，它执行一个系统调用将控制权移交给内核。当内核以这种方式被调用，它随即采取任何必要步骤，找到进程所需数据，并把数据传送到用户空间内的指定缓冲区。内核试图对数据进行高速缓存或预读取，因此进程所需数据可能已经在内核空间里了。如果是这样，该数据只需简单地拷贝出来即可。如果数据不在内核空间，则进程被挂起，内核着手把数据读进内存。</p>
+<p>了解了这两个阶段的作用之后，我们接下来就可以深入讲解五种IO模型了，他们的区别就是在两个阶段上上有着不同的逻辑。</p>
+<h2 id="阻塞式IO"><a href="#阻塞式IO" class="headerlink" title="阻塞式IO"></a>阻塞式IO</h2><p>在linux中，默认情况下所有的socket都是blocking，一个典型的读操作流程大概是这样：</p>
+<p>第一步通常涉及等待数据从网络中到达。当所有等待数据到达时，它被复制到内核中的某个缓冲区。</p>
+<p>第二步就是把数据从内核缓冲区复制到应用程序缓冲区。</p>
+<p><img src="bio.png" alt=""></p>
+<p>当用户进程调用了recvfrom这个系统调用，kernel就开始了IO的第一个阶段：准备数据。对于network io来说，很多时候数据在一开始还没有到达（比如，还没有收到一个完整的UDP包），这个时候kernel就要等待足够的数据到来。而在用户进程这边，整 个进程会被阻塞。当kernel一直等到数据准备好了，它就会将数据从kernel中拷贝到用户内存，数据的拷贝过程也是阻塞的，数据拷贝完成后kernel返回结果，用户进程才解除 block的状态，重新运行起来。</p>
+<p><strong>所以，blocking IO的特点就是在IO执行的两个阶段都被block了。</strong></p>
+<p>对应到java中就是我们常用写的io模型：bio</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    ServerSocket serverSocket=<span class="keyword">new</span> ServerSocket();</span><br><span class="line">    serverSocket.bind(<span class="keyword">new</span> InetSocketAddress(<span class="number">9090</span>));</span><br><span class="line">    <span class="keyword">byte</span>[] buff=<span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">1024</span>];</span><br><span class="line">    <span class="keyword">int</span> len=<span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)&#123;</span><br><span class="line">        Socket client = serverSocket.accept();<span class="comment">//当没有客户端到来时会阻塞在这里</span></span><br><span class="line">        InputStream inputStream = client.getInputStream();</span><br><span class="line">        len = inputStream.read(buff);<span class="comment">//当客户端没有发来数据时会阻塞在这里，并且要得到数据到来后复制到用户空间才会返回</span></span><br><span class="line">        System.out.println(<span class="keyword">new</span> String(buff,<span class="number">0</span>,len));</span><br><span class="line">        client.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>做如下测试：开启两个终端a,b。终端a先telnet到服务，然后终端b后telnet到服务，然后在b中发送消息到服务，会发现，服务b发送的消息并没有立即被服务处理，需要等到a发送了消息到服务并处理后b发送的消息才会被处理。要决绝这个问题，常用的方案就是在接收到一个客户端Socket时就新建一个线程进行处理（或者放到线程池中处理），但这种也并不能很好解决高并发的情况，因为可能大部分连接建立后，客户端和服务器端并没有进行交互，这就导致开出去的线程被空闲的占用，这样服务器性能再高也无济于事。</p>
+<h2 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h2><p>在linux下，可以通过设置使socket变为非阻塞的，当对一个非阻塞的socket进行读操作时，流程如下：</p>
+<p><img src="nio.png" alt=""></p>
+<p>从图中可以看到在一个进程发起了read操作后，如果没有数据准备好，则会直接返回，而不会再被阻塞在read上了，这个时候就需要进程进行循环，多次询问操作系统是否有数据准备好。当内核中的数据准备好之后，再次收到进程的read操作（system call）则会立即将准备好的数据拷贝到用户空间，注意数据拷贝这个过程是同步的，需要等待数据的复制。</p>
+<p>java中实现如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</span><br><span class="line">        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();</span><br><span class="line">        serverSocketChannel.configureBlocking(<span class="keyword">false</span>);</span><br><span class="line">        serverSocketChannel.socket().bind(<span class="keyword">new</span> InetSocketAddress(<span class="number">10002</span>));</span><br><span class="line">        List&lt;SocketChannel&gt; clients = <span class="keyword">new</span> LinkedList&lt;&gt;();</span><br><span class="line">        <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">            SocketChannel client = serverSocketChannel.accept();</span><br><span class="line">            <span class="keyword">if</span> (client == <span class="keyword">null</span>) &#123;</span><br><span class="line">                System.out.println(<span class="string">"no client"</span>);</span><br><span class="line">                TimeUnit.SECONDS.sleep(<span class="number">1</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                client.configureBlocking(<span class="keyword">false</span>);</span><br><span class="line">                clients.add(client);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> (SocketChannel ct : clients) &#123;</span><br><span class="line">                ByteBuffer buffer = ByteBuffer.allocate(<span class="number">1024</span>);</span><br><span class="line">                <span class="keyword">int</span> read = ct.read(buffer);</span><br><span class="line">                <span class="keyword">if</span> (read == <span class="number">0</span>) &#123;</span><br><span class="line">                    System.out.println(<span class="string">"no data to read"</span>);</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span>&#123;</span><br><span class="line">                    System.out.println(<span class="keyword">new</span> String(buffer.array(), <span class="number">0</span>, read));</span><br><span class="line">                    ct.close();</span><br><span class="line">                    clients.remove(ct);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>用同样的方式做阻塞式IO中所提到的测试，此时会发现我们并不需要新开线程就能避免终端b发送的消息被处理。</p>
+<p><strong>所以，用户进程第一个阶段不是阻塞的,需要不断的主动询问kernel数据好了没有；第二个阶段依然总是阻塞的</strong></p>
+<p>这样虽然我们减少了一次阻塞，但是又引发一个问题，过多的系统调用，必然会涉及到用户态和内核态的切换，带来较大的副作用（额外的开销）。</p>
+<h2 id="IO多路复用"><a href="#IO多路复用" class="headerlink" title="IO多路复用"></a>IO多路复用</h2><p>IO多路复用实现了一个线程监听多个文件句柄，一旦某个文件句柄就绪，就能通知应用程序进行相应的读写操作，没有文件句柄时会阻塞，多路指的是网络连接，复用指的是一个线程。实现方式有select,poll,epoll。</p>
+<p>IO多路复用和非阻塞同步IO本质一样，只是用新的select系统调用来做轮训而非用用户进程本身，这样做的好处是减少用户态和内核态的切换，他的基本原理是通过select/poll/epoll来对socket进行不断的轮询，当某一个socket有数据到达时，就通知用户进程。流程如下:</p>
+<p><img src="iomutl.png" alt=""></p>
+<p>当用户调用了select,那么该进程就会被block住，同时内核会监听被注册到select上的socket，当任何一个socket上发生用户进程所关系的事件，select就会返回，通知用户进行相应的处理，事实上，IO多路复用看起来要比同步非阻塞还差一些。因为这里需要使用两个system call (select 和 recvfrom)，而blocking IO只调用了一个system call (recvfrom)。但是，用select的优势在于它可以同时处理多个connection。（多说一句。所以，如果处理的连接数不是很高的话，使用 select/epoll的web server不一定比使用multi-threading + blocking IO的web server性能更好，可能延迟还更大。</p>
+<p>java中的实现如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        ServerSocketChannel serverChannel=ServerSocketChannel.open();</span><br><span class="line">        serverChannel.configureBlocking(<span class="keyword">false</span>);</span><br><span class="line">        serverChannel.bind(<span class="keyword">new</span> InetSocketAddress(<span class="number">8081</span>));</span><br><span class="line">        Selector selector= Selector.open();</span><br><span class="line">        serverChannel.register(selector,SelectionKey.OP_ACCEPT);</span><br><span class="line">        <span class="keyword">while</span> (<span class="keyword">true</span>)&#123;</span><br><span class="line">            selector.select();</span><br><span class="line">            Iterator&lt;SelectionKey&gt; iterator = selector.selectedKeys().iterator();</span><br><span class="line">            <span class="keyword">while</span> (iterator.hasNext())&#123;</span><br><span class="line">                SelectionKey key = iterator.next();</span><br><span class="line">                <span class="keyword">if</span> (!key.isValid()) &#123;</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (key.isAcceptable()) &#123;</span><br><span class="line">                    ServerSocketChannel ssc = (ServerSocketChannel) key.channel();<span class="comment">//拿到serverChannel</span></span><br><span class="line">                    SocketChannel clientChannel = ssc.accept();<span class="comment">//接受客服端连接拿到客户端SocketChannel</span></span><br><span class="line">                    clientChannel.configureBlocking(<span class="keyword">false</span>);<span class="comment">//设置非阻塞</span></span><br><span class="line">                    clientChannel.register(selector, SelectionKey.OP_READ);<span class="comment">//注册客户端读事件到selector上</span></span><br><span class="line">                    System.out.println(<span class="string">"a new client connected "</span>+clientChannel.getRemoteAddress());</span><br><span class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> (key.isReadable()) &#123;<span class="comment">//客户端可以读</span></span><br><span class="line">                    SocketChannel socketChannel = (SocketChannel) key.channel();</span><br><span class="line">                    ByteBuffer readBuffer = ByteBuffer.allocate(<span class="number">1024</span>);</span><br><span class="line">                    <span class="keyword">int</span> numRead;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        numRead = socketChannel.read(readBuffer);</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                        key.cancel();</span><br><span class="line">                        socketChannel.close();</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    String str = <span class="keyword">new</span> String(readBuffer.array(), <span class="number">0</span>, numRead);</span><br><span class="line">                    System.out.println(str);</span><br><span class="line">                    socketChannel.register(selector, SelectionKey.OP_WRITE);<span class="comment">//在读取到客户端数据后注册客户端的写事件到selector中</span></span><br><span class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> (key.isWritable()) &#123;</span><br><span class="line">                    SocketChannel channel = (SocketChannel) key.channel();</span><br><span class="line">                    ByteBuffer sendBuffer = ByteBuffer.allocate(<span class="number">1024</span>);</span><br><span class="line">                    sendBuffer.put(<span class="string">"bye"</span>.getBytes());</span><br><span class="line">                    sendBuffer.flip();</span><br><span class="line">                    channel.write(sendBuffer);</span><br><span class="line">                    channel.close();</span><br><span class="line">                &#125;</span><br><span class="line">                iterator.remove(); <span class="comment">//该事件已经处理，可以丢弃</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>select/epoll的优势并不是对于单个连接能处理得更快，而是在于能处理更多的连接。</p>
+<p>在IO multiplexing Model中，实际中，对于每一个socket，一般都设置成为non-blocking，但是，如上图所示，整个用户的process其实是一直被 block的。只不过process是被select这个函数block，而不是被socket IO给block。</p>
+<h2 id="信号驱动"><a href="#信号驱动" class="headerlink" title="信号驱动"></a>信号驱动</h2><p>信号驱动IO模式是用信号来做的。</p>
+<p>应用进程在发起一个IO是通知内核，如果某个IO连接上的某个事件发生时，请向我发送一个信号，在收到信号后，信号对应的处理函数会进行后续处理，一般来说，这个信号是SIGIO。</p>
+<p><img src="sig.png" alt=""></p>
+<h2 id="异步IO"><a href="#异步IO" class="headerlink" title="异步IO"></a>异步IO</h2><p>这类函数的工作机制是告知内核启动某个操作，并让内核在整个操作（包括将数据从内核拷贝到用户空间）完成后通知我们。如图：</p>
+<p><img src="aio.png" alt=""></p>
+<p>用户进程发起read操作之后，立刻就可以开始去做其它的事。而另一方面，从kernel的角度，当它受到一个asynchronous read之后，首先它会立刻返回，所以不会对用户进程产生任何block。然后，kernel会等待数据准备完成，然后将数据拷贝到用户内存，当这一切都 完成之后，kernel会给用户进程发送一个signal，告诉它read操作完成了。 在这整个过程中，进程完全没有被block。</p>
+<p>JDK在对aio的支持上大致有两种情况：针对windows，由于windows的异步io由一个叫做I/O Completion Ports 的方案，通常教程为iocp,操作系统复制管理线程池，其性能非常由于，JDK则直接采用iocp的支持。对于iocp这里多提一句，如果有朋友之前玩过Gh0st这个远控（10年前的东西了），可能会听说过iocp这个概念，Gh0st的服务端就是采用了iocp来完成网络的处理，这让Gh0st能够应对大量肉鸡连接状态的维护。</p>
+<p>参考：</p>
+<p><a href="http://www.tianshouzhi.com/api/tutorials/netty/221" target="_blank" rel="noopener">http://www.tianshouzhi.com/api/tutorials/netty/221</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/08/25/zookeeper%E9%80%89%E4%B8%BE/" rel="next" title="zookeeper选举">
+                <i class="fa fa-chevron-left"></i> zookeeper选举
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">tom</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Unix中5种IO模型"><span class="nav-number">1.</span> <span class="nav-text">Unix中5种IO模型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#阻塞式IO"><span class="nav-number">1.1.</span> <span class="nav-text">阻塞式IO</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#非阻塞式IO"><span class="nav-number">1.2.</span> <span class="nav-text">非阻塞式IO</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IO多路复用"><span class="nav-number">1.3.</span> <span class="nav-text">IO多路复用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#信号驱动"><span class="nav-number">1.4.</span> <span class="nav-text">信号驱动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#异步IO"><span class="nav-number">1.5.</span> <span class="nav-text">异步IO</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tom</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
