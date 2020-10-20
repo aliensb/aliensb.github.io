@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="netty的线程模型上文说到Unix中的5中IO模型，分别是同步阻塞IO,异步非阻塞IO，IO多路复用，信号驱动式IO，异步IO。这个是在系统成本讨论的IO模型，这次所要聊到的是在Netty中的线程模型，我更倾向于说是一种编程模型，思想层面上的。  基本来说所有的服务端网络处理程序（网络通信）处理步骤都是如下：  Read request(接受客户端发来的二进制数据) Decode request">
+<meta property="og:type" content="article">
+<meta property="og:title" content="netty的线程模型">
+<meta property="og:url" content="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/index.html">
+<meta property="og:site_name" content="Tom&#39;s Blog">
+<meta property="og:description" content="netty的线程模型上文说到Unix中的5中IO模型，分别是同步阻塞IO,异步非阻塞IO，IO多路复用，信号驱动式IO，异步IO。这个是在系统成本讨论的IO模型，这次所要聊到的是在Netty中的线程模型，我更倾向于说是一种编程模型，思想层面上的。  基本来说所有的服务端网络处理程序（网络通信）处理步骤都是如下：  Read request(接受客户端发来的二进制数据) Decode request">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/old.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/singlereactor.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/mr.png">
+<meta property="og:image" content="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/ms.png">
+<meta property="article:published_time" content="2020-10-16T12:00:00.000Z">
+<meta property="article:modified_time" content="2020-10-20T14:51:18.363Z">
+<meta property="article:author" content="tom">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/old.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://1525.xyz/2020/10/16/netty的线程模型/"/>
+
+
+
+
+
+  <title>netty的线程模型 | Tom's Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Tom's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="tom">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tom's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">netty的线程模型</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-10-16T20:00:00+08:00">
+                2020-10-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="netty的线程模型"><a href="#netty的线程模型" class="headerlink" title="netty的线程模型"></a>netty的线程模型</h1><p>上文说到Unix中的5中IO模型，分别是同步阻塞IO,异步非阻塞IO，IO多路复用，信号驱动式IO，异步IO。这个是在系统成本讨论的IO模型，这次所要聊到的是在Netty中的线程模型，我更倾向于说是一种编程模型，思想层面上的。</p>
+<p> 基本来说所有的服务端网络处理程序（网络通信）处理步骤都是如下：</p>
+<ol>
+<li>Read request(接受客户端发来的二进制数据)</li>
+<li>Decode request(将接受到的二进制数据解码为可用数据)</li>
+<li>Process request(处理请求数据，进行业务处理，准备返回客户端的数据)</li>
+<li>Encode request(将结果编码为二进制数据)</li>
+<li>Send request(将编码好的二进制数据发送出去)</li>
+</ol>
+<h2 id="传统的IO模型"><a href="#传统的IO模型" class="headerlink" title="传统的IO模型"></a>传统的IO模型</h2><p>传统的网络服务设计大概如下图：</p>
+<p><img src="old.png" alt=""></p>
+<p>结合上图了来说就是服务器开启监听后，客户端发起请求过来，就会有一个handler进行处理，所有的处理都在这个handler中完成（上面所提及的5个步骤），由于传统的IO是同步阻塞的，这会导致如果在单线程中进行处理，则后续来的客户端就得不到及时的处理，需等到前面的请求处理完成后在进行处理。</p>
+<p>上诉的处理方式显然是不能接受的，在传统的网络服务设计中往往会针对一个请求创建一个线程进行处理即上述中的handler往往会在一个线程中进行处理。也就是<em>Doug Lea</em>大佬在ppt中说的Each handler may be started in its own thread.</p>
+<p>简单的代码示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BioServer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        ServerSocket serverSocket=<span class="keyword">new</span> ServerSocket();</span><br><span class="line">        serverSocket.bind(<span class="keyword">new</span> InetSocketAddress(<span class="number">9090</span>));</span><br><span class="line">        <span class="keyword">byte</span>[] buff=<span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">1024</span>];</span><br><span class="line">        <span class="keyword">int</span> len=<span class="number">0</span>;</span><br><span class="line">        <span class="keyword">while</span> (<span class="keyword">true</span>)&#123;</span><br><span class="line">            <span class="keyword">new</span> Thread(<span class="keyword">new</span> Hanler(serverSocket.accept())).start();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Hanler</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line">        <span class="keyword">private</span> Socket client;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">Hanler</span><span class="params">(Socket client)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">this</span>.client = client;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">byte</span>[] process(<span class="keyword">byte</span>[] input) <span class="keyword">throws</span> InterruptedException &#123;</span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">2</span>);<span class="comment">//do some business</span></span><br><span class="line">            <span class="keyword">return</span> <span class="string">"hello"</span>.getBytes();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="keyword">byte</span>[] input = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">1024</span>];</span><br><span class="line">                client.getInputStream().read(input);</span><br><span class="line">                <span class="keyword">byte</span>[] output = process(input);</span><br><span class="line">                client.getOutputStream().write(output);</span><br><span class="line">            &#125;<span class="keyword">catch</span> (Exception e)&#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在后续的发展中出现了基于事件驱动的设计，在程序中注册关心的事件，当事件发生时，去针对具体事件进行处理，这就是非阻塞IO和多路复用的设计模式：如下图所示：</p>
+<p><img src="singlereactor.png" alt=""></p>
+<p>这就是最基础版的reactor模型（单reactor单线程）</p>
+<h2 id="单reactor单线程"><a href="#单reactor单线程" class="headerlink" title="单reactor单线程"></a>单reactor单线程</h2><p>这里涉及到三个概念：</p>
+<ol>
+<li>Reactor：负责响应IO事件，当检测到一个新的事件时，就将其发送给响应的handler处理</li>
+<li>Handler：负责具体的事件处理，这里的时间主要是指读写事件</li>
+<li>Acceptor：接受者，主要负责响应连接请求，建立连接。</li>
+</ol>
+<p>在这种模型下Reactor中有一个selector，在启动时，向selector中注册监听请求连接的事件，当发生连接事件时，reactor就将这个事件交由acceptor进行处理，acceptor复制连接的建立并且在selector中注册读事件，后续selector发现有可读事件之后就将读事件交由handler进行处理。</p>
+<p>以下是我理解的reactor模型代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Reactor</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Selector selector;</span><br><span class="line">    <span class="keyword">private</span> ServerSocketChannel serverChannel;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Reactor</span><span class="params">(<span class="keyword">int</span> port)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        selector = Selector.open();</span><br><span class="line">        serverChannel = ServerSocketChannel.open();</span><br><span class="line">        serverChannel.bind(<span class="keyword">new</span> InetSocketAddress(port));</span><br><span class="line">        serverChannel.configureBlocking(<span class="keyword">false</span>);</span><br><span class="line">        SelectionKey register = serverChannel.register(selector, SelectionKey.OP_ACCEPT);</span><br><span class="line">        register.attach(<span class="keyword">new</span> Acceptor(serverChannel,selector));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">                selector.select();</span><br><span class="line">                Set&lt;SelectionKey&gt; selectionKeys = selector.selectedKeys();</span><br><span class="line">                Iterator&lt;SelectionKey&gt; it = selectionKeys.iterator();</span><br><span class="line">                <span class="keyword">while</span> (it.hasNext()) &#123;</span><br><span class="line">                    SelectionKey next = it.next();</span><br><span class="line">                    dispatch(next);</span><br><span class="line">                &#125;</span><br><span class="line">                selectionKeys.clear();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">dispatch</span><span class="params">(SelectionKey key)</span> </span>&#123;</span><br><span class="line">        Runnable attach = (Runnable) key.attachment();</span><br><span class="line">        attach.run();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Acceptor</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> ServerSocketChannel serverSocketChannel;</span><br><span class="line">    <span class="keyword">private</span> Selector selector;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Acceptor</span><span class="params">(ServerSocketChannel serverSocketChannel,Selector selector)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.serverSocketChannel = serverSocketChannel;</span><br><span class="line">        <span class="keyword">this</span>.selector=selector;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            SocketChannel client = serverSocketChannel.accept();</span><br><span class="line">            <span class="keyword">if</span> (client != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">new</span> Handler(<span class="keyword">this</span>.selector,client);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Handler</span> <span class="keyword">implements</span> <span class="title">IOEventListener</span> </span>&#123;</span><br><span class="line">    ByteBuffer buffer = ByteBuffer.allocate(<span class="number">1024</span>);</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleEvent</span><span class="params">(IOEvent event)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        ReadEvent readEvent = (ReadEvent) event;</span><br><span class="line">        SelectionKey key = readEvent.getKey();</span><br><span class="line">        SocketChannel client = (SocketChannel) key.channel();</span><br><span class="line">        <span class="keyword">int</span> len = client.read(buffer);</span><br><span class="line">       <span class="comment">// if(len&gt;0)&#123;</span></span><br><span class="line">            System.out.println(<span class="keyword">new</span> String(buffer.array(), <span class="number">0</span>, len));</span><br><span class="line">            buffer.flip();</span><br><span class="line">            client.write(buffer);</span><br><span class="line">            buffer.clear();</span><br><span class="line">        <span class="comment">//&#125;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Handler</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Selector selector;</span><br><span class="line">    <span class="keyword">private</span> SocketChannel socketChannel;</span><br><span class="line">    <span class="keyword">private</span> ByteBuffer buffer = ByteBuffer.allocate(<span class="number">1024</span>);</span><br><span class="line">    <span class="keyword">private</span> String msg;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Handler</span><span class="params">(Selector selector, SocketChannel socketChannel)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.selector = selector;</span><br><span class="line">        <span class="keyword">this</span>.socketChannel = socketChannel;</span><br><span class="line">        <span class="keyword">this</span>.socketChannel.configureBlocking(<span class="keyword">false</span>);</span><br><span class="line">        SelectionKey register = socketChannel.register(selector, SelectionKey.OP_READ);</span><br><span class="line">        register.attach(<span class="keyword">this</span>);</span><br><span class="line">        <span class="keyword">this</span>.selector.wakeup();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.process();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">process</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            read();</span><br><span class="line">            <span class="comment">//doBusiness();</span></span><br><span class="line">            write();</span><br><span class="line">        &#125;<span class="keyword">catch</span> (Exception e)&#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                socketChannel.close();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IOException ioException) &#123;</span><br><span class="line">                ioException.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">read</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.buffer.clear();</span><br><span class="line">        <span class="keyword">int</span> numRead;</span><br><span class="line">        numRead = <span class="keyword">this</span>.socketChannel.read(<span class="keyword">this</span>.buffer);</span><br><span class="line">        msg = <span class="keyword">new</span> String(<span class="keyword">this</span>.buffer.array(), <span class="number">0</span>, numRead);</span><br><span class="line">        System.out.println(msg);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        buffer.clear();</span><br><span class="line">        <span class="keyword">if</span>(StringUtil.isNullOrEmpty(msg))&#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        buffer.put(msg.getBytes());</span><br><span class="line">        buffer.flip();</span><br><span class="line">        socketChannel.write(buffer);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Main</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">new</span> Reactor(<span class="number">1024</span>).run();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码是基于我对reactor模型的理解和对事件驱动模型的理解所完成的，若有偏颇还望指出。</p>
+<p>在主函数中创建了一个Reactor,在Reactor的构造方法中初始化了ServerSocketChannel和Selector，并且将ServerSocketChannel注册到了Selector中，关注于接受事件，同时创建了一个Acceptor用于处理连接请求。在SelectionKey中放入了这个Acceptor方便后续选中该key的时候能调用Acceptor来进行注册。当Reactor检测到有事件发生时就会调用dispatch方法进行事件的分发。在dispatch中回去取出SelectionKey的attachment并去调用其run方法。这样当是注册事件的时，就会调用到Acceptor来处理，当遇到读事件时就会调用到Handler来进行处理。</p>
+<p>上面这个模型会有什么问题喃？</p>
+<ol>
+<li>所有的请求都是在一个线程上处理的，包括建立连接到数据的读取，数据的处理以及响应结果的发送，这样的后果是显而易见的：线程的压力大，如果数据处理的时间较长，则会导致大量客户请求堆积。</li>
+<li>线程的跑飞，所有的处理都是在一个线程上，如果这个线程抛出异常了，则很有可能会推出进而导致整个服务不可用。</li>
+</ol>
+<p>有了上面的问题，先驱们有找到了下面两种模型：</p>
+<ol>
+<li>单reactor多线程</li>
+<li>主从reactor多线程</li>
+</ol>
+<h2 id="单reactor多线程"><a href="#单reactor多线程" class="headerlink" title="单reactor多线程"></a>单reactor多线程</h2><p>单reactor多线程是在单Reactor单线程基础上进化来的，由原来所有的事件处理都在一个线程上完成变成在不同的线程上进行处理。</p>
+<p><img src="mr.png" alt=""></p>
+<p>上图中展示了单reactor多线程模型</p>
+<p>通过与单reactor单线程对比，单reactor多线程增加了专门用于处理非io操作的decode,compute,encode操作，大大地提升了程序的效率，这种模型下，客户端发来的请求的连接，注册，读写还是是用过reactor中的线程去处理的，只是在读取完成后交由worker线程来进行处理。</p>
+<p>这种模型还是存在以下的问题：</p>
+<p>当短时间内有大量连接建立发起请求是，reactor中的线程不仅需要处理连接的建立还需要处理读取和分发，这样在应对猛增的请求时也会由于reactor中的线程忙不过来而导致阻塞。</p>
+<p>这个时候分而治之的思想往往能帮助我们解决这个问题。</p>
+<h2 id="主从reactor多线程"><a href="#主从reactor多线程" class="headerlink" title="主从reactor多线程"></a>主从reactor多线程</h2><p><img src="ms.png" alt=""></p>
+<p>上图是主从reactor多线程的示意图</p>
+<p>相对于单reactor多线程多了一个subReactor，在这种模型下，mainReactor主要负责连接的建立，然后讲建立好的通道注册到subReactor中去，而在subReactor则负责监听具体的读写事件，将事件派发给workerThread进行decode,compute,encode操作。</p>
+<p>这样就讲接受请和请求的处理分隔开来，即使面对大量连接的创建也不慌了。</p>
+<p>以上是我对netty中三种线程模型的理解，在这里先挖个坑，后续研究下netty的源码，看我的理解和netty中的线程模型有哪些出入。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/10/07/Unix%E4%B8%AD5%E7%A7%8DIO%E6%A8%A1%E5%9E%8B/" rel="next" title="Unix中5种IO模型">
+                <i class="fa fa-chevron-left"></i> Unix中5种IO模型
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">tom</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#netty的线程模型"><span class="nav-number">1.</span> <span class="nav-text">netty的线程模型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#传统的IO模型"><span class="nav-number">1.1.</span> <span class="nav-text">传统的IO模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#单reactor单线程"><span class="nav-number">1.2.</span> <span class="nav-text">单reactor单线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#单reactor多线程"><span class="nav-number">1.3.</span> <span class="nav-text">单reactor多线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#主从reactor多线程"><span class="nav-number">1.4.</span> <span class="nav-text">主从reactor多线程</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tom</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
