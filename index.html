@@ -229,6 +229,138 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/11/09/jvm%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="tom">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tom's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/11/09/jvm%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD/" itemprop="url">jvm之类加载</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-11-09T22:43:09+08:00">
+                2020-11-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          什么是类加载类加载是将一个类的class文件的二进制数据读取到内存中，将其放入到运行时数据区的方法区中，然后在堆上创建一个java.lang.Class对象用于封装方法区中的类的数据结构。jvm中并不是当需要用到某个类时才对其进行加载，jvm规范允许预加载类，当类加载器预料到可能会用某个类时会对他进行预加载，但是如果在加载过程中这个class文件缺失或者存在问题，类加载器不会立刻报告错误，而是真正使用时才报告这个错误。
+类的生命周期类的生命周期非为：加载，验证，准备，解析，初始化，使用，卸载，其中验证，准备，解析，被归为连接过程，故可以分为加载，连接，使用，卸载
+
+加载加载是类加载过程中的第一个阶段，在此阶段，jvm需要完成一下三件事：
+
+通过一个类的全限定名来获取他的二进制字节流。
+将这个
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/11/09/jvm%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://1525.xyz/2020/10/16/netty%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -844,14 +976,14 @@ select IFNULL((select Distinct Salary from Employee order by Salary DESC limit 1
           java基础基础数据类型long double 8字节
 int flot 4字节
 short char 2字节
-Byte 1字节
-Boolean 1位
+byte 1字节
+boolean 1位
 String,Stringbuffer,Stringbuilder区别：
 String是不可变的，Stringbuffer和Stringbuilder是可变的
-Stringbuffer是线程安全的，Stringbuilder是线程非安全的
+Stringbuffer是线程安全的，Stringbuilder是线程非安全的（通过sychronized实现）
 
 相同处：三个类都是final类，不能被继承
-讲讲类的实例化顺序，比如父类静态数据，构造函数，字段，子类静态数据，构造函数，字段，当new的时候，他们的执行顺序。这个通过类加载机制能说清楚，在类加载的时候会先为静态变量赋值，这个时候如果静态变量的值来自于一个静态方法，则会调用这个方法，同样，在类加载中，父类
+讲讲类的实例化顺序，比如父类静态数据，构造函数，字段，子类静态数据，构造函数，字段，当new的时候，他们的执行顺序。这个通过类加载机制能说清楚，在类加载的时候会先为静态变量赋值，这个时候如果静态变量的值来自于一个静态方法，则会调
           ...
           <!--noindex-->
           <div class="post-button text-center">
@@ -939,7 +1071,7 @@ Stringbuffer是线程安全的，Stringbuilder是线程非安全的
               
                 <a href="/archives/%7C%7C%20archive">
               
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
