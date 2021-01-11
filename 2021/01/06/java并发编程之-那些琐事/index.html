@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="前言上一篇说到了Java的线程的基础概念，提到了一些Java中创建线程的方式以及线程的6中状态，这篇我们来谈谈Java中的锁的那些事。 提到多线程就不得不说线程安全问题，多个线程同时处理一个任务是没有问题的，关键是当多个线程并发的去访问同一个资源（临界资源）是就可能会出现线程安全的问题。 线程安全线程不安全的例子想象一个如下的场景，火车票售卖的问题，比如车站放出来10000张票进行售卖，现在开了1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java并发编程之-那些琐事">
+<meta property="og:url" content="http://1525.xyz/2021/01/06/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B9%8B-%E9%82%A3%E4%BA%9B%E7%90%90%E4%BA%8B/index.html">
+<meta property="og:site_name" content="Tom&#39;s Blog">
+<meta property="og:description" content="前言上一篇说到了Java的线程的基础概念，提到了一些Java中创建线程的方式以及线程的6中状态，这篇我们来谈谈Java中的锁的那些事。 提到多线程就不得不说线程安全问题，多个线程同时处理一个任务是没有问题的，关键是当多个线程并发的去访问同一个资源（临界资源）是就可能会出现线程安全的问题。 线程安全线程不安全的例子想象一个如下的场景，火车票售卖的问题，比如车站放出来10000张票进行售卖，现在开了1">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-01-06T12:03:33.000Z">
+<meta property="article:modified_time" content="2021-01-11T14:44:39.477Z">
+<meta property="article:author" content="tom">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://1525.xyz/2021/01/06/java并发编程之-那些琐事/"/>
+
+
+
+
+
+  <title>java并发编程之-那些琐事 | Tom's Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Tom's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://1525.xyz/2021/01/06/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B9%8B-%E9%82%A3%E4%BA%9B%E7%90%90%E4%BA%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="tom">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tom's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">java并发编程之-那些琐事</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2021-01-06T20:03:33+08:00">
+                2021-01-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>上一篇说到了Java的线程的基础概念，提到了一些Java中创建线程的方式以及线程的6中状态，这篇我们来谈谈Java中的锁的那些事。</p>
+<p>提到多线程就不得不说线程安全问题，多个线程同时处理一个任务是没有问题的，关键是当多个线程并发的去访问同一个资源（临界资源）是就可能会出现线程安全的问题。</p>
+<h1 id="线程安全"><a href="#线程安全" class="headerlink" title="线程安全"></a>线程安全</h1><h2 id="线程不安全的例子"><a href="#线程不安全的例子" class="headerlink" title="线程不安全的例子"></a>线程不安全的例子</h2><p>想象一个如下的场景，火车票售卖的问题，比如车站放出来10000张票进行售卖，现在开了10个窗口同时进行售卖，这样就可以同时的进行火车票的售卖，对应到Java中我们就可以通过10个线程去模拟这个场景。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TicketSaler</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> number=<span class="number">10000</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; <span class="number">10</span>; j++) &#123;<span class="comment">//为了模拟出线程不安全的情况，每次运行跑10轮</span></span><br><span class="line">            CountDownLatch latch = <span class="keyword">new</span> CountDownLatch(<span class="number">10</span>);</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;<span class="comment">//开启10个线程进行售票</span></span><br><span class="line">                <span class="keyword">new</span> Thread(() -&gt; &#123;</span><br><span class="line">                    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">                        <span class="keyword">if</span> (number &gt; <span class="number">0</span>) &#123;<span class="comment">//①</span></span><br><span class="line">                            number--;<span class="comment">//售卖门票，如果在这行前加一句打印或者睡眠效果更明显//②</span></span><br><span class="line">                        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                            <span class="keyword">break</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                    latch.countDown();</span><br><span class="line">                &#125;).start();</span><br><span class="line">            &#125;</span><br><span class="line">            latch.await();</span><br><span class="line">            log.info(<span class="string">"&#123;&#125;,"</span>,number);<span class="comment">//打印输出结果</span></span><br><span class="line">            number = <span class="number">10000</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码看似没有问题，应该每次输出都是0，但是如果多次运行会发现有时候会出现结果为负数的情况，如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">21:39:35.818 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.822 [main] INFO skr.wtf.locks.TicketSaler - -1,</span><br><span class="line">21:39:35.823 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.824 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.825 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.826 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.827 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.828 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.829 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br><span class="line">21:39:35.829 [main] INFO skr.wtf.locks.TicketSaler - 0,</span><br></pre></td></tr></table></figure>
+
+<p>当程序的结算结果并非是预期中的结果时，就有可能是出现了线程安全问题，上述代码如果放在单线程环境下运行时没有问题，显然从逻辑上来说我们代码是不应该出错的，问题就出在了多线程同时访问一个临界资源。上述例子中票的数量就是一个临界资源，在多线程开发过程中我们应该考虑的问题有三点：1.原子性 2.可见性 3.有序性。</p>
+<p>原子性：</p>
+<p>原子性：原子性是指操作是不可分的。其表现在于对于共享变量的某些操作，应该是不可分的，必须连续完成。例如上述例子中的判断票数和买票应该是看做一个原子操作，为什么这两个操作需要看做原子操作喃，举个例子说明：如果线程A在①处判断得到number的值是1，则线程A进入if条件语句，在线程A执行扣减票数操作之前，线程A的执行权丢失，此时线程B执行进入到①处，获取number的值也是1，此时B正常进入到if条件中，完成票数扣减，此时number已经为0了，此时线程A再次获取到执行权，开始继续执行代码，在对number进行减一则得到number为-1的结果。上面的问题应该怎么解决喃，那我们需要保证这两个操作的原子性，所谓的原子性就是需要保证一个单元的操作要么不发生，要么就一起都发生。java中提供了一个关键词synchonized来解决这个问题。</p>
+<h3 id="Synchonized"><a href="#Synchonized" class="headerlink" title="Synchonized"></a>Synchonized</h3><p>synchonized这个关键词是java中的内置锁，它可以保证原子性，可见性和防止指令从排序，synchonized可以单独作为一篇来写，这里我们先简单提一下synchonized的基本用法。</p>
+<p>synchonized可以放在方法上，也可以放在语句中，如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SynchonizedDemo</span></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Object object=<span class="keyword">new</span> Object();</span><br><span class="line">    <span class="meta">@SneakyThrows</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">test1</span><span class="params">(String name)</span></span>&#123;</span><br><span class="line">       log.info(name);</span><br><span class="line">       TimeUnit.SECONDS.sleep(<span class="number">2</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@SneakyThrows</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">test2</span><span class="params">(String name)</span></span>&#123;</span><br><span class="line">        log.info(name);</span><br><span class="line">        TimeUnit.SECONDS.sleep(<span class="number">2</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@SneakyThrows</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test3</span><span class="params">(String name)</span></span>&#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (object)&#123;</span><br><span class="line">            log.info(name);</span><br><span class="line">            TimeUnit.SECONDS.sleep(<span class="number">2</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="synchonized成员方法"><a href="#synchonized成员方法" class="headerlink" title="synchonized成员方法"></a>synchonized成员方法</h4><p>在test1方法中，我们的synchonized修饰在一个成员方法上，那他的作用是在针对SynchonizedDemo这个类所创建的对象上进行加锁，需要注意的是他锁的对象，如果我new了多个SynchonizedDemo的对象则分别有多个锁</p>
+<p>如:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//同一个对象</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        SynchonizedDemo synchonizedDemo = <span class="keyword">new</span> SynchonizedDemo();</span><br><span class="line">        SynchonizedDemo synchonizedDemo1 = <span class="keyword">new</span> SynchonizedDemo();</span><br><span class="line">        <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo.test1(<span class="string">"tom"</span>);&#125;).start();</span><br><span class="line">        <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo1.test1(<span class="string">"jerry"</span>);&#125;).start();</span><br><span class="line">    &#125;</span><br><span class="line"><span class="number">22</span>:<span class="number">22</span>:<span class="number">24.282</span> [Thread-<span class="number">0</span>] INFO skr.wtf.locks.SynchonizedDemo - tom</span><br><span class="line"><span class="number">22</span>:<span class="number">22</span>:<span class="number">24.282</span> [Thread-<span class="number">1</span>] INFO skr.wtf.locks.SynchonizedDemo - jerry</span><br></pre></td></tr></table></figure>
+
+<p>我们执行这个代码tom和jerrr会同时打印出来，但是如果我们执行如下代码，则两个打印语句会有先后两秒的间隔</p>
+<p>如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//不同对象</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        SynchonizedDemo synchonizedDemo = <span class="keyword">new</span> SynchonizedDemo();</span><br><span class="line">        <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo.test1(<span class="string">"tom"</span>);&#125;).start();</span><br><span class="line">        <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo.test1(<span class="string">"jerry"</span>);&#125;).start();</span><br><span class="line">    &#125;</span><br><span class="line"><span class="number">22</span>:<span class="number">21</span>:<span class="number">34.111</span> [Thread-<span class="number">0</span>] INFO skr.wtf.locks.SynchonizedDemo - tom</span><br><span class="line"><span class="number">22</span>:<span class="number">21</span>:<span class="number">36.118</span> [Thread-<span class="number">1</span>] INFO skr.wtf.locks.SynchonizedDemo - jerry</span><br></pre></td></tr></table></figure>
+
+<p>这是因为在成员方法上的锁是锁在成员方法所属的对象上，在第一个例子中我们创建了两个对象，则我们有两个锁，此时两个锁彼此互不影响，而在第二个例子中我们只有一个对象，此时锁只有一个，我们有两个线程，两个线程需要在争抢拿到锁，只有拿到锁的那个线程才会有执行锁里面的代码，也就是我们方法中的代码。如第一个线程先拿到锁，那第二个线程就只有等第一个线程执行完毕后释放锁第二个线程才能拿到锁之后才能执行所里面的代码。</p>
+<h4 id="synchonized静态方法"><a href="#synchonized静态方法" class="headerlink" title="synchonized静态方法"></a>synchonized静态方法</h4><p>在test2中，我们用synchonized修饰在了静态方法上，如果synchonized修饰在静态方法上，则表示锁的对象地类对象，也就是class对象，在同一个虚拟机中，一个类只有一个类对象与之对应，所以我们可以知道不管我们创建多少个对象，我们的锁就只有一把，锁在类对象上面的，则所有调用被synchonized修饰的静态方法都需要先争抢这把锁才能执行，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    SynchonizedDemo synchonizedDemo = <span class="keyword">new</span> SynchonizedDemo();</span><br><span class="line">    SynchonizedDemo synchonizedDemo1 = <span class="keyword">new</span> SynchonizedDemo();</span><br><span class="line">    <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo.test2(<span class="string">"tom"</span>);&#125;).start();</span><br><span class="line">    <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo1.test2(<span class="string">"jerry"</span>);&#125;).start();</span><br><span class="line">&#125;</span><br><span class="line"><span class="number">22</span>:<span class="number">28</span>:<span class="number">31.253</span> [Thread-<span class="number">0</span>] INFO skr.wtf.locks.SynchonizedDemo - tom</span><br><span class="line"><span class="number">22</span>:<span class="number">28</span>:<span class="number">33.258</span> [Thread-<span class="number">1</span>] INFO skr.wtf.locks.SynchonizedDemo - jerry</span><br></pre></td></tr></table></figure>
+
+<p>虽然我们这里创建了两个对象，但是由于我们调用的方法是静态方法，则两个线程还是需要争抢类对象上的那把锁。</p>
+<h4 id="synchonized代码块"><a href="#synchonized代码块" class="headerlink" title="synchonized代码块"></a>synchonized代码块</h4><p>在test3中，我们采用了synchonized代码块，代码块中我们显示的将锁放在了object对象上，这表明多线程在执行这块代码时需要争抢在object对象上的锁，只有拿到这个object对象上的锁有执行的权限。这里我们的object是静态的变量，那这个方法的锁的效果就和test2一样，如果我们将object对象变成成员变量，则和test1的效果是一样的了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    SynchonizedDemo synchonizedDemo = <span class="keyword">new</span> SynchonizedDemo();</span><br><span class="line">    SynchonizedDemo synchonizedDemo1 = <span class="keyword">new</span> SynchonizedDemo();</span><br><span class="line">    <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo.test3(<span class="string">"tom"</span>);&#125;).start();</span><br><span class="line">    <span class="keyword">new</span> Thread(()-&gt;&#123;synchonizedDemo1.test3(<span class="string">"jerry"</span>);&#125;).start();</span><br><span class="line">&#125;</span><br><span class="line"><span class="number">22</span>:<span class="number">37</span>:<span class="number">07.742</span> [Thread-<span class="number">0</span>] INFO skr.wtf.locks.SynchonizedDemo - tom</span><br><span class="line"><span class="number">22</span>:<span class="number">37</span>:<span class="number">09.746</span> [Thread-<span class="number">1</span>] INFO skr.wtf.locks.SynchonizedDemo - jerry</span><br></pre></td></tr></table></figure>
+
+<p>到此，synchonized的基本使用介绍完了，我们回过头来看看我们之前的那个问题，怎么保证多线程情况下，买票是正常的售卖。我们需要保证判断票的余数和扣减票同时只有一个线程执行，那我们就可以通过加synchonized锁来实现，那我们应该怎么去加锁喃，怎样去加锁考虑的问题就是我们应该锁定在哪个对象上来，往往这个问题需要考虑我们的临界资源是怎样的，显然我们的票数是共享在多个线程中个，那我们就需要保证多个线程都需要同时争抢同一把锁，只有拿到锁的线程才能执行业务代码。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Slf</span>4j</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TicketSaler</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> number = <span class="number">10000</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; <span class="number">10</span>; j++) &#123;</span><br><span class="line">            CountDownLatch latch = <span class="keyword">new</span> CountDownLatch(<span class="number">10</span>);</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">                <span class="keyword">new</span> Thread(() -&gt; &#123;</span><br><span class="line">                    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">                        <span class="keyword">synchronized</span> (TicketSaler<span class="class">.<span class="keyword">class</span>)</span>&#123;</span><br><span class="line">                            <span class="keyword">if</span> (number &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                                number--;</span><br><span class="line">                            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                                <span class="keyword">break</span>;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line"></span><br><span class="line">                    &#125;</span><br><span class="line">                    latch.countDown();</span><br><span class="line">                &#125;).start();</span><br><span class="line">            &#125;</span><br><span class="line">            latch.await();</span><br><span class="line">            log.info(<span class="string">"&#123;&#125;,"</span>, number);</span><br><span class="line">            number = <span class="number">10000</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们让synchonized锁在TicketSaler.class这个类对象上，则所有线程都需要竞争同一把锁，这同时就只有一个线程进入到我们判断余票和扣减票数的逻辑中了。</p>
+<p>至此synchonized的基本使用介绍完毕。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/01/04/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B9%8B-java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%9F%BA%E7%A1%80/" rel="next" title="java并发编程之-java多线程基础">
+                <i class="fa fa-chevron-left"></i> java并发编程之-java多线程基础
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">tom</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#线程安全"><span class="nav-number">2.</span> <span class="nav-text">线程安全</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#线程不安全的例子"><span class="nav-number">2.1.</span> <span class="nav-text">线程不安全的例子</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Synchonized"><span class="nav-number">2.1.1.</span> <span class="nav-text">Synchonized</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#synchonized成员方法"><span class="nav-number">2.1.1.1.</span> <span class="nav-text">synchonized成员方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#synchonized静态方法"><span class="nav-number">2.1.1.2.</span> <span class="nav-text">synchonized静态方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#synchonized代码块"><span class="nav-number">2.1.1.3.</span> <span class="nav-text">synchonized代码块</span></a></li></ol></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tom</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
